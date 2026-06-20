@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>โกหนุ่ม เซอร์วิส</title>
+<link rel="apple-touch-icon" href="ico.jpg">
+<link rel="icon" href="ico.jpg">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:#F5F4F0;color:#1C1B18;font-size:14px}
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:210px;min-width:210px;background:#fff;border-right:1px solid #E8E6DF;display:flex;flex-direction:column}
+.logo{padding:16px;border-bottom:1px solid #E8E6DF}
+.logo h1{font-size:15px;font-weight:600;color:#1C1B18}
+.logo p{font-size:11px;color:#777;margin-top:2px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 16px;cursor:pointer;color:#666;transition:all 0.15s;font-size:13px}
+.nav-item:hover{background:#F5F4F0;color:#1C1B18}
+.nav-item.active{background:#F0FAF6;color:#1D9E75;border-left:3px solid #1D9E75;padding-left:13px;font-weight:500}
+.nav-sep{height:1px;background:#E8E6DF;margin:6px 0}
+.main{flex:1;overflow-y:auto;padding:24px}
+.page{display:none}.page.active{display:block}
+.page-title{font-size:20px;font-weight:600;margin-bottom:18px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.metric-card{background:#fff;border-radius:10px;padding:16px;border:1px solid #E8E6DF}
+.metric-card .label{font-size:12px;color:#777;margin-bottom:6px}
+.metric-card .value{font-size:24px;font-weight:600}
+.value.green{color:#1D9E75}.value.red{color:#E24B4A}.value.blue{color:#185FA5}
+.card{background:#fff;border:1px solid #E8E6DF;border-radius:10px;padding:18px;margin-bottom:14px}
+.card-title{font-size:15px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.btn{padding:8px 15px;border-radius:8px;border:1px solid #D5D3CB;background:#fff;cursor:pointer;font-size:13px;color:#1C1B18;display:inline-flex;align-items:center;gap:6px;transition:all 0.15s;font-family:inherit}
+.btn:hover{background:#F5F4F0}
+.btn.primary{background:#1D9E75;border-color:#1D9E75;color:#fff}.btn.primary:hover{background:#0F6E56}
+.btn.danger{background:#E24B4A;border-color:#E24B4A;color:#fff}.btn.danger:hover{background:#A32D2D}
+.btn.blue{background:#185FA5;border-color:#185FA5;color:#fff}.btn.blue:hover{background:#0E3E6E}
+.btn.amber{background:#B45309;border-color:#B45309;color:#fff}.btn.amber:hover{background:#7A3707}
+.btn.sm{padding:4px 10px;font-size:12px}
+input,select,textarea{width:100%;padding:8px 11px;border:1px solid #D5D3CB;border-radius:8px;background:#fff;color:#1C1B18;font-size:13px;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#1D9E75;box-shadow:0 0 0 3px rgba(29,158,117,.1)}
+.form-row{display:grid;gap:12px;margin-bottom:12px}
+.form-row.c2{grid-template-columns:1fr 1fr}.form-row.c3{grid-template-columns:1fr 1fr 1fr}
+.form-group label{font-size:12px;color:#555;margin-bottom:5px;display:block;font-weight:500}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:9px 13px;border-bottom:1px solid #E8E6DF;font-weight:600;color:#555;font-size:12px;background:#FAFAF8}
+td{padding:9px 13px;border-bottom:1px solid #F0EEE8}
+tr:hover td{background:#FAFAF8}
+.badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.badge.green{background:#E1F5EE;color:#0F6E56}.badge.amber{background:#FEF3C7;color:#92400E}
+.badge.red{background:#FCEBEB;color:#A32D2D}.badge.blue{background:#DBEAFE;color:#1D4ED8}.badge.gray{background:#F3F4F6;color:#555}
+.toolbar{display:flex;gap:9px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.toolbar input[type=text],.toolbar input[type=date],.toolbar input[type=month]{width:auto}
+.appt-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F0EEE8}
+.appt-time{font-size:12px;color:#777;min-width:64px}
+.appt-info{flex:1}.appt-info .name{font-weight:600;font-size:13px}.appt-info .detail{font-size:12px;color:#777}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:24px;width:520px;max-width:95vw;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-title{font-size:17px;font-weight:600;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center}
+.close-btn{cursor:pointer;color:#999;font-size:20px;border:none;background:none;padding:0;line-height:1}
+.tab-bar{display:flex;border-bottom:1px solid #E8E6DF;margin-bottom:16px}
+.tab{padding:9px 18px;cursor:pointer;font-size:13px;color:#777;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.active{color:#1D9E75;border-bottom-color:#1D9E75;font-weight:500}
+.summary-row{display:flex;justify-content:space-between;padding:8px 0;font-size:13px;border-bottom:1px solid #F0EEE8}
+.summary-row:last-child{border-bottom:none;font-weight:600;font-size:15px;padding-top:12px}
+.sync-status{display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:5px 12px;border-radius:20px;background:#F5F4F0;border:1px solid #E8E6DF}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc}
+.sync-dot.ok{background:#1D9E75}.sync-dot.err{background:#E24B4A}.sync-dot.sync{background:#B45309;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.step-box{background:#F9F8F5;border-radius:9px;padding:13px 15px;margin-bottom:9px;font-size:13px;line-height:1.8;border-left:3px solid #1D9E75}
+.step-num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#1D9E75;color:#fff;font-size:11px;font-weight:700;margin-right:8px}
+.info-box{background:#EFF6FF;border-radius:9px;padding:12px 15px;font-size:13px;color:#1D4ED8;margin-bottom:12px;border-left:3px solid #185FA5}
+.warn-box{background:#FEF3C7;border-radius:9px;padding:12px 15px;font-size:13px;color:#92400E;margin-bottom:12px;border-left:3px solid #B45309}
+#script-code{font-family:'Courier New',monospace;font-size:11px;background:#1C1B18;color:#A3E6C8;border:none;resize:none;border-radius:9px;padding:14px;line-height:1.6}
+
+/* ── MOBILE RESPONSIVE ───────────────────────────────────────────────────── */
+.bottom-nav{display:none}
+.mobile-header{display:none}
+@media(max-width:700px){
+  .app{flex-direction:column;height:100dvh}
+  .sidebar{display:none}
+  .main{padding:14px 12px 84px;overflow-y:auto;flex:1}
+  .page-title{font-size:17px;margin-bottom:14px}
+  .grid-4{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+  .grid-3{grid-template-columns:1fr 1fr;gap:10px}
+  .grid-2{grid-template-columns:1fr 1fr;gap:10px}
+  .metric-card{padding:12px}
+  .metric-card .value{font-size:18px}
+  .metric-card .label{font-size:10px}
+  .card{padding:13px;margin-bottom:10px}
+  .card-title{font-size:14px;margin-bottom:10px}
+  .form-row.c2{grid-template-columns:1fr}
+  .form-row.c3{grid-template-columns:1fr}
+  .modal{padding:18px;border-radius:18px 18px 0 0;position:fixed;bottom:0;left:0;right:0;max-height:92dvh;width:100%;max-width:100%;box-shadow:0 -8px 40px rgba(0,0,0,.2)}
+  .modal-overlay.open{align-items:flex-end}
+  table{font-size:12px}
+  th,td{padding:7px 8px}
+  .hide-mobile{display:none!important}
+  .toolbar{gap:7px;flex-wrap:wrap}
+  .toolbar input[type=text]{width:100%}
+  .btn{font-size:13px;padding:9px 14px}
+  .btn.sm{padding:5px 9px;font-size:11px}
+  .tab{padding:8px 12px;font-size:12px}
+  .summary-row{font-size:13px}
+  .step-box{font-size:12px;padding:10px 12px}
+  .info-box,.warn-box{font-size:12px;padding:10px 12px}
+  .bottom-nav{
+    display:flex;position:fixed;bottom:0;left:0;right:0;
+    background:#fff;border-top:1px solid #E8E6DF;z-index:500;
+    padding:4px 0 env(safe-area-inset-bottom,4px);
+  }
+  .bn-item{
+    flex:1;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;padding:5px 2px;cursor:pointer;
+    color:#aaa;font-size:9px;gap:1px;border:none;background:none;
+    font-family:inherit;transition:color 0.15s;-webkit-tap-highlight-color:transparent;
+  }
+  .bn-item.active{color:#1D9E75}
+  .bn-icon{font-size:22px;line-height:1}
+  .bn-label{font-size:9px;font-weight:500;margin-top:1px}
+  .mobile-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;background:#fff;border-bottom:1px solid #E8E6DF;
+    position:sticky;top:0;z-index:100;flex-shrink:0;
+  }
+  .mobile-header h1{font-size:14px;font-weight:600;color:#1C1B18}
+}
+</style>
+</head>
+<body>
+<!-- Mobile Top Header -->
+<div class="mobile-header">
+  <h1>🌬️ โกหนุ่ม เซอร์วิส</h1>
+  <div id="sync-indicator-m" class="sync-status" style="font-size:10px"><div class="sync-dot" id="sync-dot-m"></div><span id="sync-label-m">ไม่ได้เชื่อมต่อ</span></div>
+</div>
+
+<!-- Bottom Navigation (mobile) -->
+<div class="bottom-nav">
+  <button class="bn-item active" onclick="showPageMobile('dashboard',this)"><span class="bn-icon">📊</span><span class="bn-label">หน้าหลัก</span></button>
+  <button class="bn-item" onclick="showPageMobile('appointments',this)"><span class="bn-icon">📅</span><span class="bn-label">นัดหมาย</span></button>
+  <button class="bn-item" onclick="showPageMobile('customers',this)"><span class="bn-icon">👥</span><span class="bn-label">ลูกค้า</span></button>
+  <button class="bn-item" onclick="showPageMobile('finance',this)"><span class="bn-icon">💰</span><span class="bn-label">รายรับ</span></button>
+  <button class="bn-item" onclick="showMoreMenu()"><span class="bn-icon">☰</span><span class="bn-label">เพิ่มเติม</span></button>
+</div>
+
+<!-- More Menu (mobile) -->
+<div class="modal-overlay" id="modal-more">
+<div class="modal" style="padding:16px">
+  <div class="modal-title" style="font-size:15px">เมนูเพิ่มเติม <button class="close-btn" onclick="closeModal('modal-more')">×</button></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <button class="btn" style="justify-content:flex-start;padding:14px;font-size:14px" onclick="closeModal('modal-more');showPageMobile('commission',null)">🏆 ค่าคอมมิชชัน</button>
+    <button class="btn" style="justify-content:flex-start;padding:14px;font-size:14px" onclick="closeModal('modal-more');showPageMobile('stock',null)">📦 สต๊อกของ</button>
+    <button class="btn" style="justify-content:flex-start;padding:14px;font-size:14px" onclick="closeModal('modal-more');showPageMobile('employees',null)">🪪 พนักงาน</button>
+    <button class="btn" style="justify-content:flex-start;padding:14px;font-size:14px" onclick="closeModal('modal-more');showPageMobile('sync',null)">🔄 Sync & Export</button>
+  </div>
+</div>
+</div>
+
+<div class="app">
+<div class="sidebar">
+  <div class="logo">
+    <h1>🌬️ โกหนุ่ม เซอร์วิส</h1>
+    <p>K.Noom AC Service — Krabi</p>
+  </div>
+  <div style="padding:8px 0;flex:1">
+    <div class="nav-item active" onclick="showPage('dashboard',this)">📊 Dashboard</div>
+    <div class="nav-item" onclick="showPage('appointments',this)">📅 นัดหมายงาน</div>
+    <div class="nav-item" onclick="showPage('customers',this)">👥 ประวัติลูกค้า</div>
+    <div class="nav-sep"></div>
+    <div class="nav-item" onclick="showPage('finance',this)">💰 รายรับ-รายจ่าย</div>
+    <div class="nav-item" onclick="showPage('commission',this)">🏆 ค่าคอมมิชชัน</div>
+    <div class="nav-sep"></div>
+    <div class="nav-item" onclick="showPage('stock',this)">📦 สต๊อกของ</div>
+    <div class="nav-item" onclick="showPage('employees',this)">🪪 พนักงาน</div>
+    <div class="nav-sep"></div>
+    <div class="nav-item" onclick="showPage('sync',this)">🔄 Sync & Export</div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page active">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+    <div class="page-title" style="margin:0">Dashboard</div>
+    <div id="sync-indicator" class="sync-status"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">ไม่ได้เชื่อมต่อ</span></div>
+  </div>
+  <div class="grid-4">
+    <div class="metric-card"><div class="label">💚 รายรับวันนี้</div><div class="value green" id="d-income-today">฿0</div></div>
+    <div class="metric-card"><div class="label">❤️ รายจ่ายวันนี้</div><div class="value red" id="d-expense-today">฿0</div></div>
+    <div class="metric-card"><div class="label">💚 รายรับเดือนนี้</div><div class="value green" id="d-income-month">฿0</div></div>
+    <div class="metric-card"><div class="label">❤️ รายจ่ายเดือนนี้</div><div class="value red" id="d-expense-month">฿0</div></div>
+  </div>
+  <div class="grid-4">
+    <div class="metric-card"><div class="label">📅 นัดวันนี้</div><div class="value blue" id="d-appt-today">0 งาน</div></div>
+    <div class="metric-card"><div class="label">📆 นัดเดือนนี้</div><div class="value blue" id="d-appt-month">0 งาน</div></div>
+    <div class="metric-card"><div class="label">🪙 ค่าคอมวันนี้</div><div class="value" id="d-wage-today">฿0</div></div>
+    <div class="metric-card"><div class="label">🪙 ค่าคอมเดือนนี้</div><div class="value" id="d-wage-month">฿0</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title">📅 นัดหมายวันนี้</div><div id="dash-appt-list"><p style="color:#999;font-size:13px">ไม่มีนัดหมายวันนี้</p></div></div>
+    <div class="card"><div class="card-title">⚠️ สต๊อกใกล้หมด</div><div id="dash-stock-list"><p style="color:#999;font-size:13px">สต๊อกปกติทุกรายการ</p></div></div>
+  </div>
+</div>
+
+<!-- APPOINTMENTS -->
+<div id="page-appointments" class="page">
+  <div class="page-title">📅 นัดหมายงาน</div>
+  <div class="toolbar">
+    <button class="btn primary" onclick="openModal('modal-appt')">+ เพิ่มนัดหมาย</button>
+    <input type="date" id="appt-filter-date" onchange="renderAppointments()">
+    <select id="appt-filter-status" onchange="renderAppointments()" style="width:150px">
+      <option value="">ทุกสถานะ</option>
+      <option>รอดำเนินการ</option><option>กำลังดำเนินการ</option><option>เสร็จแล้ว</option><option>ยกเลิก</option>
+    </select>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table><thead><tr><th>วัน-เวลา</th><th>ลูกค้า</th><th class="hide-mobile">งาน</th><th class="hide-mobile">ช่าง</th><th>สถานะ</th><th class="hide-mobile">ราคา</th><th></th></tr></thead>
+    <tbody id="appt-tbody"></tbody></table>
+  </div>
+</div>
+
+<!-- CUSTOMERS -->
+<div id="page-customers" class="page">
+  <div class="page-title">👥 ประวัติลูกค้า</div>
+  <div class="toolbar">
+    <button class="btn primary" onclick="openModal('modal-customer')">+ เพิ่มลูกค้า</button>
+    <input type="text" placeholder="ค้นหาชื่อ/เบอร์..." id="cust-search" oninput="renderCustomers()" style="width:220px">
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table><thead><tr><th>ชื่อลูกค้า</th><th>เบอร์โทร</th><th class="hide-mobile">ที่อยู่</th><th class="hide-mobile">BTU/ยี่ห้อ</th><th class="hide-mobile">งานล่าสุด</th><th></th></tr></thead>
+    <tbody id="cust-tbody"></tbody></table>
+  </div>
+</div>
+
+<!-- FINANCE -->
+<div id="page-finance" class="page">
+  <div class="page-title">💰 รายรับ-รายจ่าย</div>
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchFinTab('income',this)">รายรับ</div>
+    <div class="tab" onclick="switchFinTab('expense',this)">รายจ่าย</div>
+    <div class="tab" onclick="switchFinTab('summary',this)">สรุป</div>
+  </div>
+  <div id="fin-income">
+    <div class="toolbar">
+      <button class="btn primary" onclick="openModal('modal-income')">+ บันทึกรายรับ</button>
+      <input type="month" id="income-filter-month" onchange="renderFinance()">
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table><thead><tr><th>วันที่</th><th>รายการ</th><th>ลูกค้า</th><th>ประเภทงาน</th><th>จำนวน</th><th></th></tr></thead>
+      <tbody id="income-tbody"></tbody></table>
+    </div>
+  </div>
+  <div id="fin-expense" style="display:none">
+    <div class="toolbar">
+      <button class="btn primary" onclick="openModal('modal-expense')">+ บันทึกรายจ่าย</button>
+      <input type="month" id="expense-filter-month" onchange="renderFinance()">
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table><thead><tr><th>วันที่</th><th>รายการ</th><th>หมวดหมู่</th><th>จำนวน</th><th></th></tr></thead>
+      <tbody id="expense-tbody"></tbody></table>
+    </div>
+  </div>
+  <div id="fin-summary" style="display:none">
+    <div class="card"><div class="card-title">สรุปรายเดือน</div><div id="finance-summary"></div></div>
+  </div>
+</div>
+
+<!-- COMMISSION -->
+<div id="page-commission" class="page">
+  <div class="page-title">🏆 ค่าคอมมิชชันพนักงาน</div>
+  <div class="toolbar"><input type="month" id="comm-filter-month" onchange="renderCommission()"></div>
+  <div id="comm-cards"></div>
+</div>
+
+<!-- STOCK -->
+<div id="page-stock" class="page">
+  <div class="page-title">📦 สต๊อกของ</div>
+  <div class="toolbar">
+    <button class="btn primary" onclick="openModal('modal-stock')">+ เพิ่มรายการ</button>
+    <input type="text" placeholder="ค้นหา..." id="stock-search" oninput="renderStock()" style="width:200px">
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table><thead><tr><th>ชื่อสินค้า</th><th class="hide-mobile">หน่วย</th><th>จำนวน</th><th class="hide-mobile">ขั้นต่ำ</th><th class="hide-mobile">ราคา/หน่วย</th><th>สถานะ</th><th></th></tr></thead>
+    <tbody id="stock-tbody"></tbody></table>
+  </div>
+</div>
+
+<!-- EMPLOYEES -->
+<div id="page-employees" class="page">
+  <div class="page-title">🪪 จัดการพนักงาน</div>
+  <div class="toolbar"><button class="btn primary" onclick="openModal('modal-emp')">+ เพิ่มพนักงาน</button></div>
+  <div id="emp-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px"></div>
+</div>
+
+<!-- SYNC & EXPORT -->
+<div id="page-sync" class="page">
+  <div class="page-title">🔄 Sync & Export</div>
+
+  <div class="card">
+    <div class="card-title">📥 Export Excel</div>
+    <p style="font-size:13px;color:#666;margin-bottom:14px">ดาวน์โหลดข้อมูลทั้งหมดเป็นไฟล์ .xlsx (6 sheet: นัดหมาย / ลูกค้า / รายรับ / รายจ่าย / สต๊อก / พนักงาน)</p>
+    <button class="btn primary" onclick="exportExcel()">📥 ดาวน์โหลด Excel</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔗 ตั้งค่า Google Sheets Sync</div>
+    <div class="info-box">ℹ️ สร้าง Google Apps Script ครั้งเดียว แล้ว Sync ได้ทุกเครื่อง ทุกที่</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Google Apps Script Web App URL</label>
+        <input type="text" id="gsheet-url" placeholder="https://script.google.com/macros/s/xxx/exec">
+      </div>
+    </div>
+    <div style="display:flex;gap:9px;margin-bottom:14px">
+      <button class="btn primary" onclick="saveGSheetUrl()">💾 บันทึก URL</button>
+      <button class="btn blue" onclick="testConnection()">🔌 ทดสอบ</button>
+    </div>
+    <div id="conn-result" style="font-size:13px"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔄 Sync ข้อมูล</div>
+    <div class="grid-2">
+      <div style="border:1px solid #E8E6DF;border-radius:9px;padding:16px">
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px">⬆️ Push ขึ้น Sheets</div>
+        <p style="font-size:12px;color:#777;margin-bottom:12px">ส่งข้อมูลจาก Browser → Google Sheets (เขียนทับข้อมูลเก่าใน Sheets)</p>
+        <button class="btn primary" onclick="pushToSheets()">⬆️ Push ขึ้น Sheets</button>
+      </div>
+      <div style="border:1px solid #E8E6DF;border-radius:9px;padding:16px">
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px">⬇️ Pull จาก Sheets</div>
+        <p style="font-size:12px;color:#777;margin-bottom:12px">ดึงข้อมูลจาก Google Sheets → Browser (เขียนทับข้อมูลเก่าใน Browser)</p>
+        <button class="btn amber" onclick="pullFromSheets()">⬇️ Pull จาก Sheets</button>
+      </div>
+    </div>
+    <div id="sync-log" style="margin-top:12px;font-size:13px;color:#555;min-height:20px"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 คู่มือสร้าง Google Apps Script (ทำครั้งเดียว)</div>
+    <div class="warn-box">⚠️ ต้องทำขั้นตอนนี้ก่อน 1 ครั้ง จึงจะ Sync ได้</div>
+    <div class="step-box"><span class="step-num">1</span>เปิด <a href="https://sheets.new" target="_blank" style="color:#185FA5;font-weight:500">sheets.new</a> → สร้าง Google Sheets ใหม่ → ตั้งชื่อว่า <b>"โกหนุ่ม เซอร์วิส"</b></div>
+    <div class="step-box"><span class="step-num">2</span>คลิกเมนู <b>Extensions → Apps Script</b></div>
+    <div class="step-box"><span class="step-num">3</span>ลบโค้ดเดิมทิ้งทั้งหมด แล้วกด <b>คัดลอกโค้ด</b> ด้านล่าง วางลงไป</div>
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:12px;font-weight:600;color:#555">▼ Apps Script Code</span>
+        <button class="btn sm primary" onclick="copyScript()">📋 คัดลอกโค้ด</button>
+      </div>
+      <textarea id="script-code" readonly rows="14"></textarea>
+    </div>
+    <div class="step-box"><span class="step-num">4</span>คลิก <b>Deploy → New deployment</b> → Type: <b>Web app</b> → Execute as: <b>Me</b> → Who has access: <b>Anyone</b> → กด <b>Deploy</b></div>
+    <div class="step-box"><span class="step-num">5</span>คัดลอก <b>Web app URL</b> ที่ได้ → นำมาวางในช่อง URL ด้านบน → กด <b>บันทึก URL</b></div>
+    <div class="step-box"><span class="step-num">6</span>กด <b>ทดสอบ</b> แล้ว <b>Push ขึ้น Sheets</b> ได้เลย ✅</div>
+  </div>
+</div>
+
+</div><!-- end main -->
+</div><!-- end app -->
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-appt">
+<div class="modal">
+  <div class="modal-title">📅 นัดหมาย <button class="close-btn" onclick="closeModal('modal-appt')">×</button></div>
+  <input type="hidden" id="appt-edit-id">
+  <div class="form-row c2"><div class="form-group"><label>วันที่</label><input type="date" id="appt-date"></div><div class="form-group"><label>เวลา</label><input type="time" id="appt-time"></div></div>
+  <div class="form-row"><div class="form-group"><label>ลูกค้า</label><select id="appt-customer"><option value="">-- เลือกลูกค้า --</option></select></div></div>
+  <div class="form-row c2">
+    <div class="form-group"><label>ประเภทงาน</label><select id="appt-type"><option>ล้างแอร์</option><option>ซ่อมแอร์</option><option>เติมน้ำยา</option><option>ติดตั้งแอร์</option><option>ย้ายแอร์พร้อมติดตั้ง</option></select></div>
+    <div class="form-group"><label>ช่างผู้รับผิดชอบ</label><select id="appt-tech"><option value="">-- เลือกช่าง --</option></select></div>
+  </div>
+  <div class="form-row c2">
+    <div class="form-group"><label>ราคา (บาท)</label><input type="number" id="appt-price" placeholder="0"></div>
+    <div class="form-group"><label>สถานะ</label><select id="appt-status"><option>รอดำเนินการ</option><option>กำลังดำเนินการ</option><option>เสร็จแล้ว</option><option>ยกเลิก</option></select></div>
+  </div>
+  <div class="form-row"><div class="form-group"><label>ผู้แนะนำ (สำหรับค่าคอมแนะนำ)</label><select id="appt-referred"><option value="">-- ไม่มีผู้แนะนำ --</option></select></div></div>
+  <div class="form-row"><div class="form-group"><label>หมายเหตุ</label><textarea id="appt-note" rows="2"></textarea></div></div>
+  <div style="display:flex;gap:9px;justify-content:flex-end;margin-top:6px">
+    <button class="btn" onclick="closeModal('modal-appt')">ยกเลิก</button>
+    <button class="btn primary" onclick="saveAppointment()">💾 บันทึก</button>
+  </div>
+</div></div>
+
+<div class="modal-overlay" id="modal-customer">
+<div class="modal">
+  <div class="modal-title">👤 ลูกค้า <button class="close-btn" onclick="closeModal('modal-customer')">×</button></div>
+  <input type="hidden" id="cust-edit-id">
+  <div class="form-row c2"><div class="form-group"><label>ชื่อ-นามสกุล</label><input type="text" id="cust-name"></div><div class="form-group"><label>เบอร์โทร</label><input type="text" id="cust-phone"></div></div>
+  <div class="form-row"><div class="form-group"><label>ที่อยู่</label><textarea id="cust-addr" rows="2"></textarea></div></div>
+  <div class="form-row c2"><div class="form-group"><label>ยี่ห้อแอร์</label><input type="text" id="cust-brand" placeholder="Mitsubishi, Daikin..."></div><div class="form-group"><label>BTU</label><select id="cust-btu"><option>9000</option><option>12000</option><option>18000</option><option>24000</option><option>36000</option><option>อื่นๆ</option></select></div></div>
+  <div class="form-row"><div class="form-group"><label>หมายเหตุ</label><textarea id="cust-note" rows="2"></textarea></div></div>
+  <div style="display:flex;gap:9px;justify-content:flex-end">
+    <button class="btn" onclick="closeModal('modal-customer')">ยกเลิก</button>
+    <button class="btn primary" onclick="saveCustomer()">💾 บันทึก</button>
+  </div>
+</div></div>
+
+<div class="modal-overlay" id="modal-income">
+<div class="modal">
+  <div class="modal-title">💚 บันทึกรายรับ <button class="close-btn" onclick="closeModal('modal-income')">×</button></div>
+  <input type="hidden" id="income-edit-id">
+  <div class="form-row c2"><div class="form-group"><label>วันที่</label><input type="date" id="income-date"></div><div class="form-group"><label>จำนวนเงิน (บาท)</label><input type="number" id="income-amount" placeholder="0"></div></div>
+  <div class="form-row"><div class="form-group"><label>รายการ</label><input type="text" id="income-desc"></div></div>
+  <div class="form-row c2"><div class="form-group"><label>ลูกค้า</label><select id="income-customer"><option value="">-- เลือกลูกค้า --</option></select></div><div class="form-group"><label>ประเภทงาน</label><select id="income-type"><option>ล้างแอร์</option><option>ซ่อมแอร์</option><option>เติมน้ำยา</option><option>ติดตั้งแอร์</option><option>ย้ายแอร์พร้อมติดตั้ง</option></select></div></div>
+  <div style="display:flex;gap:9px;justify-content:flex-end">
+    <button class="btn" onclick="closeModal('modal-income')">ยกเลิก</button>
+    <button class="btn primary" onclick="saveIncome()">💾 บันทึก</button>
+  </div>
+</div></div>
+
+<div class="modal-overlay" id="modal-expense">
+<div class="modal">
+  <div class="modal-title">❤️ บันทึกรายจ่าย <button class="close-btn" onclick="closeModal('modal-expense')">×</button></div>
+  <input type="hidden" id="expense-edit-id">
+  <div class="form-row c2"><div class="form-group"><label>วันที่</label><input type="date" id="expense-date"></div><div class="form-group"><label>จำนวนเงิน (บาท)</label><input type="number" id="expense-amount" placeholder="0"></div></div>
+  <div class="form-row"><div class="form-group"><label>รายการ</label><input type="text" id="expense-desc"></div></div>
+  <div class="form-row"><div class="form-group"><label>หมวดหมู่</label><select id="expense-cat"><option>น้ำยาแอร์</option><option>อุปกรณ์/อะไหล่</option><option>น้ำมันเชื้อเพลิง</option><option>ค่าเดินทาง</option><option>ค่าเช่า</option><option>เงินเดือนพนักงาน</option><option>อื่นๆ</option></select></div></div>
+  <div style="display:flex;gap:9px;justify-content:flex-end">
+    <button class="btn" onclick="closeModal('modal-expense')">ยกเลิก</button>
+    <button class="btn primary" onclick="saveExpense()">💾 บันทึก</button>
+  </div>
+</div></div>
+
+<div class="modal-overlay" id="modal-stock">
+<div class="modal">
+  <div class="modal-title">📦 สินค้า/วัสดุ <button class="close-btn" onclick="closeModal('modal-stock')">×</button></div>
+  <input type="hidden" id="stock-edit-id">
+  <div class="form-row c2"><div class="form-group"><label>ชื่อสินค้า</label><input type="text" id="stock-name"></div><div class="form-group"><label>หน่วย</label><input type="text" id="stock-unit" placeholder="กระป๋อง, ชิ้น, ม้วน..."></div></div>
+  <div class="form-row c3"><div class="form-group"><label>จำนวนคงเหลือ</label><input type="number" id="stock-qty" placeholder="0"></div><div class="form-group"><label>จำนวนขั้นต่ำ</label><input type="number" id="stock-min" placeholder="0"></div><div class="form-group"><label>ราคา/หน่วย</label><input type="number" id="stock-price" placeholder="0"></div></div>
+  <div style="display:flex;gap:9px;justify-content:flex-end">
+    <button class="btn" onclick="closeModal('modal-stock')">ยกเลิก</button>
+    <button class="btn primary" onclick="saveStock()">💾 บันทึก</button>
+  </div>
+</div></div>
+
+<div class="modal-overlay" id="modal-emp">
+<div class="modal">
+  <div class="modal-title">🪪 พนักงาน <button class="close-btn" onclick="closeModal('modal-emp')">×</button></div>
+  <input type="hidden" id="emp-edit-id">
+  <div class="form-row c2"><div class="form-group"><label>ชื่อ-นามสกุล</label><input type="text" id="emp-name"></div><div class="form-group"><label>เบอร์โทร</label><input type="text" id="emp-phone"></div></div>
+  <div class="form-row c2"><div class="form-group"><label>ตำแหน่ง</label><select id="emp-role"><option>ช่างแอร์</option><option>ช่างซ่อม</option><option>พนักงานขาย</option><option>ผู้ช่วยช่าง</option></select></div><div class="form-group"><label>เงินเดือนพื้นฐาน (บาท)</label><input type="number" id="emp-salary" placeholder="0"></div></div>
+  <div style="font-size:13px;font-weight:600;margin:12px 0 8px;color:#555">🎯 ค่าคอมมิชชันแนะนำงาน (บาท/งาน)</div>
+  <div class="form-row c3">
+    <div class="form-group"><label>แนะนำล้างแอร์</label><input type="number" id="emp-r1" placeholder="0"></div>
+    <div class="form-group"><label>แนะนำซ่อมแอร์</label><input type="number" id="emp-r2" placeholder="0"></div>
+    <div class="form-group"><label>แนะนำเติมน้ำยา</label><input type="number" id="emp-r3" placeholder="0"></div>
+  </div>
+  <div style="font-size:13px;font-weight:600;margin:12px 0 8px;color:#555">💼 รายได้ต่องาน (บาท/งาน)</div>
+  <div class="form-row c2"><div class="form-group"><label>ล้างแอร์</label><input type="number" id="emp-c1" placeholder="0"></div><div class="form-group"><label>ซ่อมแอร์</label><input type="number" id="emp-c2" placeholder="0"></div></div>
+  <div class="form-row c3"><div class="form-group"><label>เติมน้ำยา</label><input type="number" id="emp-c3" placeholder="0"></div><div class="form-group"><label>ติดตั้งแอร์</label><input type="number" id="emp-c4" placeholder="0"></div><div class="form-group"><label>ย้ายแอร์พร้อมติดตั้ง</label><input type="number" id="emp-c5" placeholder="0"></div></div>
+  <div style="display:flex;gap:9px;justify-content:flex-end">
+    <button class="btn" onclick="closeModal('modal-emp')">ยกเลิก</button>
+    <button class="btn primary" onclick="saveEmployee()">💾 บันทึก</button>
+  </div>
+</div></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+let db={
+  appointments:JSON.parse(localStorage.getItem('knoom_appt')||'[]'),
+  customers:JSON.parse(localStorage.getItem('knoom_cust')||'[]'),
+  income:JSON.parse(localStorage.getItem('knoom_income')||'[]'),
+  expense:JSON.parse(localStorage.getItem('knoom_expense')||'[]'),
+  stock:JSON.parse(localStorage.getItem('knoom_stock')||'[]'),
+  employees:JSON.parse(localStorage.getItem('knoom_emp')||'[]'),
+};
+let gsheetUrl=localStorage.getItem('knoom_gsheet_url')||'';
+
+function save(k){localStorage.setItem('knoom_'+k,JSON.stringify(db[k]))}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
+function fmt(n){return '฿'+Number(n||0).toLocaleString()}
+function today(){return new Date().toISOString().slice(0,10)}
+function thisMonth(){return new Date().toISOString().slice(0,7)}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  el.classList.add('active');
+  const fn={dashboard:updateDashboard,appointments:renderAppointments,customers:renderCustomers,
+    finance:renderFinance,commission:renderCommission,stock:renderStock,employees:renderEmployees,sync:initSyncPage};
+  if(fn[id]) fn[id]();
+}
+function openModal(id){
+  if(id==='modal-appt'){
+    document.getElementById('appt-edit-id').value='';
+    document.getElementById('appt-date').value=today();
+    document.getElementById('appt-time').value='09:00';
+    document.getElementById('appt-price').value='';
+    document.getElementById('appt-note').value='';
+    document.getElementById('appt-status').value='รอดำเนินการ';
+    document.getElementById('appt-customer').innerHTML='<option value="">-- เลือกลูกค้า --</option>'+db.customers.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    document.getElementById('appt-tech').innerHTML='<option value="">-- เลือกช่าง --</option>'+db.employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+    document.getElementById('appt-referred').innerHTML='<option value="">-- ไม่มีผู้แนะนำ --</option>'+db.employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  }
+  if(id==='modal-income'){
+    document.getElementById('income-edit-id').value='';
+    document.getElementById('income-date').value=today();
+    document.getElementById('income-amount').value='';
+    document.getElementById('income-desc').value='';
+    document.getElementById('income-customer').innerHTML='<option value="">-- เลือกลูกค้า --</option>'+db.customers.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  }
+  if(id==='modal-expense'){
+    document.getElementById('expense-edit-id').value='';
+    document.getElementById('expense-date').value=today();
+    document.getElementById('expense-amount').value='';
+    document.getElementById('expense-desc').value='';
+  }
+  if(id==='modal-customer'){
+    document.getElementById('cust-edit-id').value='';
+    ['cust-name','cust-phone','cust-addr','cust-brand','cust-note'].forEach(i=>document.getElementById(i).value='');
+  }
+  if(id==='modal-stock'){
+    document.getElementById('stock-edit-id').value='';
+    ['stock-name','stock-unit','stock-qty','stock-min','stock-price'].forEach(i=>document.getElementById(i).value='');
+  }
+  if(id==='modal-emp'){
+    document.getElementById('emp-edit-id').value='';
+    ['emp-name','emp-phone','emp-salary','emp-r1','emp-r2','emp-r3','emp-c1','emp-c2','emp-c3','emp-c4','emp-c5'].forEach(i=>document.getElementById(i).value='');
+  }
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+
+// ── APPOINTMENTS ──────────────────────────────────────────────────────────────
+function saveAppointment(){
+  const id=document.getElementById('appt-edit-id').value||uid();
+  const csel=document.getElementById('appt-customer');
+  const tsel=document.getElementById('appt-tech');
+  const rsel=document.getElementById('appt-referred');
+  const obj={id,date:document.getElementById('appt-date').value,time:document.getElementById('appt-time').value,
+    customerId:csel.value,customerName:csel.options[csel.selectedIndex]?.text||'',
+    type:document.getElementById('appt-type').value,
+    techId:tsel.value,techName:tsel.options[tsel.selectedIndex]?.text||'',
+    price:+document.getElementById('appt-price').value||0,
+    status:document.getElementById('appt-status').value,
+    referredById:rsel.value,
+    referredByName:rsel.value?rsel.options[rsel.selectedIndex]?.text||'':'',
+    note:document.getElementById('appt-note').value};
+  const idx=db.appointments.findIndex(a=>a.id===id);
+  if(idx>=0) db.appointments[idx]=obj; else db.appointments.push(obj);
+  save('appointments'); closeModal('modal-appt'); renderAppointments(); updateDashboard();
+}
+function editAppt(id){
+  const a=db.appointments.find(x=>x.id===id); if(!a) return;
+  openModal('modal-appt');
+  document.getElementById('appt-edit-id').value=a.id;
+  document.getElementById('appt-date').value=a.date;
+  document.getElementById('appt-time').value=a.time;
+  document.getElementById('appt-customer').innerHTML='<option value="">-- เลือกลูกค้า --</option>'+db.customers.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  document.getElementById('appt-customer').value=a.customerId;
+  document.getElementById('appt-tech').innerHTML='<option value="">-- เลือกช่าง --</option>'+db.employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  document.getElementById('appt-tech').value=a.techId;
+  document.getElementById('appt-referred').innerHTML='<option value="">-- ไม่มีผู้แนะนำ --</option>'+db.employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  document.getElementById('appt-referred').value=a.referredById||'';
+  document.getElementById('appt-type').value=a.type;
+  document.getElementById('appt-price').value=a.price;
+  document.getElementById('appt-status').value=a.status;
+  document.getElementById('appt-note').value=a.note||'';
+}
+function deleteAppt(id){if(confirm('ลบนัดหมายนี้?')){db.appointments=db.appointments.filter(a=>a.id!==id);save('appointments');renderAppointments();updateDashboard();}}
+function renderAppointments(){
+  const fd=document.getElementById('appt-filter-date').value;
+  const fs=document.getElementById('appt-filter-status').value;
+  const sc={'รอดำเนินการ':'amber','กำลังดำเนินการ':'blue','เสร็จแล้ว':'green','ยกเลิก':'gray'};
+  let list=db.appointments.filter(a=>{if(fd&&a.date!==fd)return false;if(fs&&a.status!==fs)return false;return true;}).sort((a,b)=>a.date+a.time<b.date+b.time?-1:1);
+  document.getElementById('appt-tbody').innerHTML=list.length?list.map(a=>`<tr><td>${a.date} ${a.time}</td><td>${a.customerName||'-'}</td><td class="hide-mobile">${a.type}</td><td class="hide-mobile">${a.techName||'-'}</td><td><span class="badge ${sc[a.status]||'gray'}">${a.status}</span></td><td class="hide-mobile">${fmt(a.price)}</td><td style="white-space:nowrap"><button class="btn sm" onclick="editAppt('${a.id}')">✏️</button> <button class="btn sm danger" onclick="deleteAppt('${a.id}')">🗑</button></td></tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:#999;padding:24px">ไม่มีข้อมูล</td></tr>';
+}
+
+// ── CUSTOMERS ─────────────────────────────────────────────────────────────────
+function saveCustomer(){
+  const id=document.getElementById('cust-edit-id').value||uid();
+  const obj={id,name:document.getElementById('cust-name').value,phone:document.getElementById('cust-phone').value,
+    address:document.getElementById('cust-addr').value,brand:document.getElementById('cust-brand').value,
+    btu:document.getElementById('cust-btu').value,note:document.getElementById('cust-note').value};
+  const idx=db.customers.findIndex(c=>c.id===id);
+  if(idx>=0) db.customers[idx]=obj; else db.customers.push(obj);
+  save('customers'); closeModal('modal-customer'); renderCustomers();
+}
+function editCustomer(id){
+  const c=db.customers.find(x=>x.id===id); if(!c) return;
+  openModal('modal-customer');
+  document.getElementById('cust-edit-id').value=c.id;
+  document.getElementById('cust-name').value=c.name;
+  document.getElementById('cust-phone').value=c.phone;
+  document.getElementById('cust-addr').value=c.address;
+  document.getElementById('cust-brand').value=c.brand;
+  document.getElementById('cust-btu').value=c.btu;
+  document.getElementById('cust-note').value=c.note;
+}
+function deleteCustomer(id){if(confirm('ลบลูกค้านี้?')){db.customers=db.customers.filter(c=>c.id!==id);save('customers');renderCustomers();}}
+function renderCustomers(){
+  const q=(document.getElementById('cust-search').value||'').toLowerCase();
+  const list=db.customers.filter(c=>!q||c.name.toLowerCase().includes(q)||c.phone.includes(q));
+  document.getElementById('cust-tbody').innerHTML=list.length?list.map(c=>{
+    const last=db.appointments.filter(a=>a.customerId===c.id).sort((a,b)=>a.date<b.date?1:-1)[0];
+    return `<tr><td><b>${c.name}</b></td><td>${c.phone}</td><td class="hide-mobile" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.address||'-'}</td><td class="hide-mobile">${c.btu} BTU${c.brand?' / '+c.brand:''}</td><td class="hide-mobile">${last?last.date+' '+last.type:'-'}</td><td style="white-space:nowrap"><button class="btn sm" onclick="editCustomer('${c.id}')">✏️</button> <button class="btn sm danger" onclick="deleteCustomer('${c.id}')">🗑</button></td></tr>`;
+  }).join(''):'<tr><td colspan="6" style="text-align:center;color:#999;padding:24px">ไม่มีข้อมูล</td></tr>';
+}
+
+// ── FINANCE ───────────────────────────────────────────────────────────────────
+function switchFinTab(t,el){
+  ['income','expense','summary'].forEach(x=>document.getElementById('fin-'+x).style.display='none');
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.getElementById('fin-'+t).style.display='block';
+  el.classList.add('active');
+  renderFinance();
+}
+function saveIncome(){
+  const id=document.getElementById('income-edit-id').value||uid();
+  const csel=document.getElementById('income-customer');
+  const obj={id,date:document.getElementById('income-date').value,amount:+document.getElementById('income-amount').value||0,
+    desc:document.getElementById('income-desc').value,customerId:csel.value,
+    customerName:csel.options[csel.selectedIndex]?.text||'',type:document.getElementById('income-type').value};
+  const idx=db.income.findIndex(x=>x.id===id);
+  if(idx>=0) db.income[idx]=obj; else db.income.push(obj);
+  save('income'); closeModal('modal-income'); renderFinance(); updateDashboard();
+}
+function saveExpense(){
+  const id=document.getElementById('expense-edit-id').value||uid();
+  const obj={id,date:document.getElementById('expense-date').value,amount:+document.getElementById('expense-amount').value||0,
+    desc:document.getElementById('expense-desc').value,cat:document.getElementById('expense-cat').value};
+  const idx=db.expense.findIndex(x=>x.id===id);
+  if(idx>=0) db.expense[idx]=obj; else db.expense.push(obj);
+  save('expense'); closeModal('modal-expense'); renderFinance(); updateDashboard();
+}
+function deleteIncome(id){if(confirm('ลบ?')){db.income=db.income.filter(x=>x.id!==id);save('income');renderFinance();updateDashboard();}}
+function deleteExpense(id){if(confirm('ลบ?')){db.expense=db.expense.filter(x=>x.id!==id);save('expense');renderFinance();updateDashboard();}}
+function renderFinance(){
+  const im=document.getElementById('income-filter-month').value||thisMonth();
+  const em=document.getElementById('expense-filter-month').value||thisMonth();
+  if(!document.getElementById('income-filter-month').value) document.getElementById('income-filter-month').value=im;
+  if(!document.getElementById('expense-filter-month').value) document.getElementById('expense-filter-month').value=em;
+  const inc=db.income.filter(x=>x.date.startsWith(im)).sort((a,b)=>b.date<a.date?1:-1);
+  const exp=db.expense.filter(x=>x.date.startsWith(em)).sort((a,b)=>b.date<a.date?1:-1);
+  document.getElementById('income-tbody').innerHTML=inc.length?inc.map(x=>`<tr><td>${x.date}</td><td>${x.desc}</td><td>${x.customerName||'-'}</td><td>${x.type}</td><td style="color:#1D9E75;font-weight:600">${fmt(x.amount)}</td><td><button class="btn sm danger" onclick="deleteIncome('${x.id}')">🗑</button></td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;color:#999;padding:24px">ไม่มีข้อมูล</td></tr>';
+  document.getElementById('expense-tbody').innerHTML=exp.length?exp.map(x=>`<tr><td>${x.date}</td><td>${x.desc}</td><td>${x.cat}</td><td style="color:#E24B4A;font-weight:600">${fmt(x.amount)}</td><td><button class="btn sm danger" onclick="deleteExpense('${x.id}')">🗑</button></td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:#999;padding:24px">ไม่มีข้อมูล</td></tr>';
+  const ti=inc.reduce((s,x)=>s+x.amount,0), te=exp.reduce((s,x)=>s+x.amount,0);
+  document.getElementById('finance-summary').innerHTML=`<div class="summary-row"><span>รายรับทั้งหมด</span><span style="color:#1D9E75">${fmt(ti)}</span></div><div class="summary-row"><span>รายจ่ายทั้งหมด</span><span style="color:#E24B4A">${fmt(te)}</span></div><div class="summary-row"><span>กำไรสุทธิ</span><span style="color:${ti-te>=0?'#1D9E75':'#E24B4A'}">${fmt(ti-te)}</span></div>`;
+}
+
+// ── COMMISSION ────────────────────────────────────────────────────────────────
+function renderCommission(){
+  const m=document.getElementById('comm-filter-month').value||thisMonth();
+  if(!document.getElementById('comm-filter-month').value) document.getElementById('comm-filter-month').value=m;
+  const appts=db.appointments.filter(a=>a.date.startsWith(m)&&a.status==='เสร็จแล้ว');
+  // job income map: ประเภทงาน -> key c1-c5
+  const jm={'ล้างแอร์':'c1','ซ่อมแอร์':'c2','เติมน้ำยา':'c3','ติดตั้งแอร์':'c4','ย้ายแอร์พร้อมติดตั้ง':'c5'};
+  // referral map: ประเภทงาน -> key r1-r3
+  const rm={'ล้างแอร์':'r1','ซ่อมแอร์':'r2','เติมน้ำยา':'r3'};
+  document.getElementById('comm-cards').innerHTML=db.employees.length?db.employees.map(emp=>{
+    const jobs=appts.filter(a=>a.techId===emp.id);
+    let totJob=0, totRef=0;
+    // job income rows
+    const jobRows=jobs.map(j=>{
+      const c=+(emp[jm[j.type]]||0); totJob+=c;
+      return`<tr><td>${j.date}</td><td>${j.customerName||'-'}</td><td>${j.type}</td><td>${fmt(j.price)}</td><td style="color:#1D9E75;font-weight:600">${fmt(c)}</td></tr>`;
+    }).join('');
+    // referral rows: งานที่ถูกแนะนำโดยพนักงานนี้ (referredBy field)
+    const refJobs=appts.filter(a=>a.referredById===emp.id);
+    const refRows=refJobs.map(j=>{
+      const c=+(emp[rm[j.type]]||0); totRef+=c;
+      return`<tr><td>${j.date}</td><td>${j.customerName||'-'}</td><td>${j.type}</td><td>${fmt(j.price)}</td><td style="color:#185FA5;font-weight:600">${fmt(c)}</td></tr>`;
+    }).join('');
+    const totAll=totJob+totRef;
+    return `<div class="card">
+      <div class="card-title">👷 ${emp.name} <span class="badge green">${emp.role}</span>
+        <span style="margin-left:auto;font-size:13px;color:#555">${jobs.length} งาน | รวมทั้งหมด: <b style="color:#1D9E75">${fmt(totAll)}</b></span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#1D9E75;margin-bottom:8px">💼 รายได้ต่องาน (${fmt(totJob)})</div>
+          ${jobRows?`<table><thead><tr><th>วันที่</th><th>ลูกค้า</th><th>งาน</th><th>ราคางาน</th><th>รายได้</th></tr></thead><tbody>${jobRows}</tbody></table>`:'<p style="color:#999;font-size:12px">ไม่มีงานที่เสร็จ</p>'}
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#185FA5;margin-bottom:8px">🎯 ค่าคอมแนะนำ (${fmt(totRef)})</div>
+          ${refRows?`<table><thead><tr><th>วันที่</th><th>ลูกค้า</th><th>งาน</th><th>ราคางาน</th><th>ค่าคอม</th></tr></thead><tbody>${refRows}</tbody></table>`:'<p style="color:#999;font-size:12px">ไม่มีงานที่แนะนำ</p>'}
+        </div>
+      </div>
+    </div>`;
+  }).join(''):'<p style="color:#999">ยังไม่มีพนักงาน — ไปเพิ่มที่เมนูพนักงานก่อนค่ะ</p>';
+}
+
+// ── STOCK ─────────────────────────────────────────────────────────────────────
+function saveStock(){
+  const id=document.getElementById('stock-edit-id').value||uid();
+  const obj={id,name:document.getElementById('stock-name').value,unit:document.getElementById('stock-unit').value,
+    qty:+document.getElementById('stock-qty').value||0,min:+document.getElementById('stock-min').value||0,
+    price:+document.getElementById('stock-price').value||0};
+  const idx=db.stock.findIndex(x=>x.id===id);
+  if(idx>=0) db.stock[idx]=obj; else db.stock.push(obj);
+  save('stock'); closeModal('modal-stock'); renderStock(); updateDashboard();
+}
+function editStock(id){
+  const s=db.stock.find(x=>x.id===id); if(!s) return;
+  openModal('modal-stock');
+  document.getElementById('stock-edit-id').value=s.id;
+  document.getElementById('stock-name').value=s.name;
+  document.getElementById('stock-unit').value=s.unit;
+  document.getElementById('stock-qty').value=s.qty;
+  document.getElementById('stock-min').value=s.min;
+  document.getElementById('stock-price').value=s.price;
+}
+function deleteStock(id){if(confirm('ลบ?')){db.stock=db.stock.filter(x=>x.id!==id);save('stock');renderStock();}}
+function adjustStock(id,d){const s=db.stock.find(x=>x.id===id);if(!s)return;s.qty=Math.max(0,s.qty+d);save('stock');renderStock();updateDashboard();}
+function renderStock(){
+  const q=(document.getElementById('stock-search').value||'').toLowerCase();
+  const list=db.stock.filter(s=>!q||s.name.toLowerCase().includes(q));
+  document.getElementById('stock-tbody').innerHTML=list.length?list.map(s=>`<tr><td><b>${s.name}</b></td><td class="hide-mobile">${s.unit}</td><td><button class="btn sm" onclick="adjustStock('${s.id}',-1)">−</button> <b style="margin:0 6px">${s.qty}</b> <button class="btn sm" onclick="adjustStock('${s.id}',1)">+</button></td><td class="hide-mobile">${s.min}</td><td class="hide-mobile">${fmt(s.price)}</td><td><span class="badge ${s.qty<=s.min?'amber':'green'}">${s.qty<=s.min?'⚠️':'✅'}</span></td><td style="white-space:nowrap"><button class="btn sm" onclick="editStock('${s.id}')">✏️</button> <button class="btn sm danger" onclick="deleteStock('${s.id}')">🗑</button></td></tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:#999;padding:24px">ไม่มีข้อมูล</td></tr>';
+}
+
+// ── EMPLOYEES ─────────────────────────────────────────────────────────────────
+function saveEmployee(){
+  const id=document.getElementById('emp-edit-id').value||uid();
+  const obj={id,name:document.getElementById('emp-name').value,phone:document.getElementById('emp-phone').value,
+    role:document.getElementById('emp-role').value,salary:+document.getElementById('emp-salary').value||0,
+    r1:+document.getElementById('emp-r1').value||0,r2:+document.getElementById('emp-r2').value||0,r3:+document.getElementById('emp-r3').value||0,
+    c1:+document.getElementById('emp-c1').value||0,c2:+document.getElementById('emp-c2').value||0,
+    c3:+document.getElementById('emp-c3').value||0,c4:+document.getElementById('emp-c4').value||0,
+    c5:+document.getElementById('emp-c5').value||0};
+  const idx=db.employees.findIndex(x=>x.id===id);
+  if(idx>=0) db.employees[idx]=obj; else db.employees.push(obj);
+  save('employees'); closeModal('modal-emp'); renderEmployees();
+}
+function editEmployee(id){
+  const e=db.employees.find(x=>x.id===id); if(!e) return;
+  openModal('modal-emp');
+  document.getElementById('emp-edit-id').value=e.id;
+  ['name','phone','salary','r1','r2','r3','c1','c2','c3','c4','c5'].forEach(f=>document.getElementById('emp-'+f).value=e[f]||'');
+  document.getElementById('emp-role').value=e.role;
+}
+function deleteEmployee(id){if(confirm('ลบพนักงาน?')){db.employees=db.employees.filter(x=>x.id!==id);save('employees');renderEmployees();}}
+function renderEmployees(){
+  const rn=['แนะนำล้างแอร์','แนะนำซ่อมแอร์','แนะนำเติมน้ำยา'];
+  const cn=['ล้างแอร์','ซ่อมแอร์','เติมน้ำยา','ติดตั้งแอร์','ย้ายแอร์พร้อมติดตั้ง'];
+  document.getElementById('emp-cards').innerHTML=db.employees.length?db.employees.map(e=>`<div class="card"><div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><div style="width:44px;height:44px;border-radius:50%;background:#DBEAFE;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#185FA5">${e.name.slice(0,2)}</div><div><div style="font-weight:600;font-size:14px">${e.name}</div><div style="font-size:12px;color:#777">${e.role} | ${e.phone}</div></div></div><div style="font-size:13px;margin-bottom:10px">เงินเดือน: <b>${fmt(e.salary)}</b></div><div style="font-size:12px;border-top:1px solid #F0EEE8;padding-top:10px"><div style="font-weight:600;color:#185FA5;margin-bottom:4px">🎯 ค่าคอมแนะนำ</div>${rn.map((n,i)=>`<div style="display:flex;justify-content:space-between;padding:2px 0"><span style="color:#555">${n}</span><span style="color:#185FA5;font-weight:600">${fmt(e['r'+(i+1)])}</span></div>`).join('')}<div style="font-weight:600;color:#1D9E75;margin:8px 0 4px">💼 รายได้ต่องาน</div>${cn.map((n,i)=>`<div style="display:flex;justify-content:space-between;padding:2px 0"><span style="color:#555">${n}</span><span style="color:#1D9E75;font-weight:600">${fmt(e['c'+(i+1)])}</span></div>`).join('')}</div><div style="margin-top:12px;display:flex;gap:8px"><button class="btn sm" onclick="editEmployee('${e.id}')">✏️ แก้ไข</button><button class="btn sm danger" onclick="deleteEmployee('${e.id}')">🗑 ลบ</button></div></div>`).join(''):'<div style="color:#999;grid-column:1/-1;padding:20px">ยังไม่มีพนักงาน</div>';
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+function updateDashboard(){
+  const td=today(),tm=thisMonth();
+  const iT=db.income.filter(x=>x.date===td).reduce((s,x)=>s+x.amount,0);
+  const eT=db.expense.filter(x=>x.date===td).reduce((s,x)=>s+x.amount,0);
+  const iM=db.income.filter(x=>x.date.startsWith(tm)).reduce((s,x)=>s+x.amount,0);
+  const eM=db.expense.filter(x=>x.date.startsWith(tm)).reduce((s,x)=>s+x.amount,0);
+  const aT=db.appointments.filter(a=>a.date===td);
+  const aM=db.appointments.filter(a=>a.date.startsWith(tm));
+  document.getElementById('d-income-today').textContent=fmt(iT);
+  document.getElementById('d-expense-today').textContent=fmt(eT);
+  document.getElementById('d-income-month').textContent=fmt(iM);
+  document.getElementById('d-expense-month').textContent=fmt(eM);
+  document.getElementById('d-appt-today').textContent=aT.length+' งาน';
+  document.getElementById('d-appt-month').textContent=aM.length+' งาน';
+  const jm={'ล้างแอร์':'c1','ซ่อมแอร์':'c2','เติมน้ำยา':'c3','ติดตั้งแอร์':'c4','ย้ายแอร์พร้อมติดตั้ง':'c5'};
+  const rm={'ล้างแอร์':'r1','ซ่อมแอร์':'r2','เติมน้ำยา':'r3'};
+  let wT=0,wM=0;
+  db.appointments.filter(a=>a.date===td&&a.status==='เสร็จแล้ว').forEach(a=>{
+    const e=db.employees.find(x=>x.id===a.techId); if(e) wT+=+(e[jm[a.type]]||0);
+    const r=db.employees.find(x=>x.id===a.referredById); if(r&&rm[a.type]) wT+=+(r[rm[a.type]]||0);
+  });
+  db.appointments.filter(a=>a.date.startsWith(tm)&&a.status==='เสร็จแล้ว').forEach(a=>{
+    const e=db.employees.find(x=>x.id===a.techId); if(e) wM+=+(e[jm[a.type]]||0);
+    const r=db.employees.find(x=>x.id===a.referredById); if(r&&rm[a.type]) wM+=+(r[rm[a.type]]||0);
+  });
+  document.getElementById('d-wage-today').textContent=fmt(wT);
+  document.getElementById('d-wage-month').textContent=fmt(wM);
+  const sc={'รอดำเนินการ':'amber','กำลังดำเนินการ':'blue','เสร็จแล้ว':'green','ยกเลิก':'gray'};
+  document.getElementById('dash-appt-list').innerHTML=aT.length?aT.sort((a,b)=>a.time>b.time?1:-1).map(a=>`<div class="appt-item"><div class="appt-time">⏰ ${a.time}</div><div class="appt-info"><div class="name">${a.customerName||'-'}</div><div class="detail">${a.type} | ${a.techName||'ไม่ระบุช่าง'}</div></div><span class="badge ${sc[a.status]||'gray'}">${a.status}</span></div>`).join(''):'<p style="color:#999;font-size:13px">ไม่มีนัดหมายวันนี้</p>';
+  const low=db.stock.filter(s=>s.qty<=s.min);
+  document.getElementById('dash-stock-list').innerHTML=low.length?low.map(s=>`<div style="background:#FEF3C7;border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:12px;color:#92400E">⚠️ <b>${s.name}</b> เหลือ ${s.qty} ${s.unit} (ขั้นต่ำ ${s.min})</div>`).join(''):'<p style="color:#999;font-size:13px">✅ สต๊อกอยู่ในระดับปกติ</p>';
+  setSyncIndicator();
+}
+
+// ── SYNC INDICATOR ────────────────────────────────────────────────────────────
+function setSyncIndicator(){setSyncIndicatorAll()}
+
+// ── EXPORT EXCEL ──────────────────────────────────────────────────────────────
+function exportExcel(){
+  const wb=XLSX.utils.book_new();
+  const aData=[['ID','วันที่','เวลา','ลูกค้า','ประเภทงาน','ช่าง','ราคา','สถานะ','หมายเหตุ'],
+    ...db.appointments.map(a=>[a.id,a.date,a.time,a.customerName,a.type,a.techName,a.price,a.status,a.note||''])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aData),'นัดหมาย');
+  const cData=[['ID','ชื่อ','เบอร์','ที่อยู่','ยี่ห้อ','BTU','หมายเหตุ'],
+    ...db.customers.map(c=>[c.id,c.name,c.phone,c.address,c.brand,c.btu,c.note||''])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(cData),'ลูกค้า');
+  const iData=[['ID','วันที่','รายการ','ลูกค้า','ประเภทงาน','จำนวนเงิน'],
+    ...db.income.map(x=>[x.id,x.date,x.desc,x.customerName,x.type,x.amount])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(iData),'รายรับ');
+  const eData=[['ID','วันที่','รายการ','หมวดหมู่','จำนวนเงิน'],
+    ...db.expense.map(x=>[x.id,x.date,x.desc,x.cat,x.amount])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(eData),'รายจ่าย');
+  const sData=[['ID','ชื่อสินค้า','หน่วย','จำนวน','ขั้นต่ำ','ราคา/หน่วย'],
+    ...db.stock.map(s=>[s.id,s.name,s.unit,s.qty,s.min,s.price])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sData),'สต๊อก');
+  const empData=[['ID','ชื่อ','เบอร์','ตำแหน่ง','เงินเดือน','แนะนำล้างแอร์','แนะนำซ่อมแอร์','แนะนำเติมน้ำยา','ล้างแอร์','ซ่อมแอร์','เติมน้ำยา','ติดตั้งแอร์','ย้ายแอร์พร้อมติดตั้ง'],
+    ...db.employees.map(e=>[e.id,e.name,e.phone,e.role,e.salary,e.r1||0,e.r2||0,e.r3||0,e.c1,e.c2,e.c3,e.c4,e.c5])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(empData),'พนักงาน');
+  XLSX.writeFile(wb,`โกหนุ่ม_เซอร์วิส_${today()}.xlsx`);
+}
+
+// ── GOOGLE SHEETS SYNC ────────────────────────────────────────────────────────
+function initSyncPage(){
+  document.getElementById('gsheet-url').value=gsheetUrl;
+  document.getElementById('script-code').value=getAppsScript();
+}
+function saveGSheetUrl(){
+  gsheetUrl=document.getElementById('gsheet-url').value.trim();
+  localStorage.setItem('knoom_gsheet_url',gsheetUrl);
+  setSyncIndicator();
+  document.getElementById('conn-result').innerHTML='<span style="color:#1D9E75">✅ บันทึก URL เรียบร้อยแล้วค่ะ</span>';
+}
+async function testConnection(){
+  if(!gsheetUrl){alert('กรุณาใส่ URL ก่อนค่ะ');return;}
+  document.getElementById('conn-result').innerHTML='<span style="color:#B45309">🔄 กำลังทดสอบ...</span>';
+  try{
+    await fetch(gsheetUrl+'?action=ping',{method:'GET',mode:'no-cors'});
+    document.getElementById('conn-result').innerHTML='<span style="color:#1D9E75">✅ ส่ง Request สำเร็จ — ลอง Push ได้เลยค่ะ</span>';
+  }catch(e){
+    document.getElementById('conn-result').innerHTML='<span style="color:#E24B4A">❌ ไม่สามารถเชื่อมต่อได้: '+e.message+'</span>';
+  }
+}
+async function pushToSheets(){
+  if(!gsheetUrl){alert('กรุณาตั้งค่า URL ก่อนค่ะ (หน้า Sync & Export)');return;}
+  const log=document.getElementById('sync-log');
+  log.innerHTML='🔄 กำลัง Push ข้อมูลขึ้น Sheets...';
+  document.getElementById('sync-dot').className='sync-dot sync';
+  try{
+    const payload={action:'push',data:{appointments:db.appointments,customers:db.customers,income:db.income,expense:db.expense,stock:db.stock,employees:db.employees}};
+    await fetch(gsheetUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    document.getElementById('sync-dot').className='sync-dot ok';
+    log.innerHTML='✅ Push สำเร็จ! เมื่อ '+new Date().toLocaleTimeString('th-TH');
+  }catch(e){
+    document.getElementById('sync-dot').className='sync-dot err';
+    log.innerHTML='❌ Push ไม่สำเร็จ: '+e.message;
+  }
+}
+async function pullFromSheets(){
+  if(!gsheetUrl){alert('กรุณาตั้งค่า URL ก่อนค่ะ');return;}
+  if(!confirm('⚠️ Pull จาก Sheets จะเขียนทับข้อมูลใน Browser\nยืนยันหรือไม่?')) return;
+  const log=document.getElementById('sync-log');
+  log.innerHTML='🔄 กำลัง Pull ข้อมูลจาก Sheets...';
+  document.getElementById('sync-dot').className='sync-dot sync';
+  try{
+    const r=await fetch(gsheetUrl+'?action=pull');
+    const json=await r.json();
+    if(json.data){
+      Object.keys(json.data).forEach(k=>{if(db[k]!==undefined){db[k]=json.data[k];save(k);}});
+      document.getElementById('sync-dot').className='sync-dot ok';
+      log.innerHTML='✅ Pull สำเร็จ! เมื่อ '+new Date().toLocaleTimeString('th-TH');
+      updateDashboard();
+    }else{
+      log.innerHTML='⚠️ Sheets ไม่มีข้อมูล หรือ Format ไม่ถูกต้อง';
+    }
+  }catch(e){
+    document.getElementById('sync-dot').className='sync-dot err';
+    log.innerHTML='❌ Pull ไม่สำเร็จ: '+e.message+'\n(ตรวจสอบว่า Deploy เป็น "Anyone" แล้วหรือยังค่ะ)';
+  }
+}
+function copyScript(){
+  const t=document.getElementById('script-code');
+  t.select(); document.execCommand('copy');
+  alert('✅ คัดลอกโค้ดแล้วค่ะ! นำไปวางใน Apps Script ได้เลย');
+}
+function getAppsScript(){
+return `// ==========================================
+// K.Noom Service — Google Apps Script
+// วางโค้ดนี้ใน Apps Script แล้ว Deploy
+// เป็น Web App (Anyone can access)
+// ==========================================
+
+const SHEETS = ['appointments','customers','income','expense','stock','employees'];
+
+function doGet(e) {
+  const action = e.parameter.action;
+  if (action === 'ping') return out({ok: true, msg: 'K.Noom Service Connected'});
+  if (action === 'pull') return out({data: pullAll()});
+  return out({ok: true});
+}
+
+function doPost(e) {
+  try {
+    const body = JSON.parse(e.postData.contents);
+    if (body.action === 'push') {
+      pushAll(body.data);
+      return out({ok: true, pushed: new Date().toISOString()});
+    }
+  } catch(err) {
+    return out({ok: false, error: err.message});
+  }
+}
+
+function pushAll(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  SHEETS.forEach(name => {
+    let sh = ss.getSheetByName(name);
+    if (!sh) sh = ss.insertSheet(name);
+    sh.clearContents();
+    const rows = data[name] || [];
+    if (rows.length === 0) return;
+    const keys = Object.keys(rows[0]);
+    sh.appendRow(keys);
+    rows.forEach(r => sh.appendRow(keys.map(k => r[k] !== undefined ? r[k] : '')));
+  });
+}
+
+function pullAll() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const result = {};
+  SHEETS.forEach(name => {
+    const sh = ss.getSheetByName(name);
+    if (!sh || sh.getLastRow() < 2) { result[name] = []; return; }
+    const vals = sh.getDataRange().getValues();
+    const keys = vals[0];
+    result[name] = vals.slice(1).map(row => {
+      const obj = {};
+      keys.forEach((k, i) => { obj[k] = row[i]; });
+      return obj;
+    });
+  });
+  return result;
+}
+
+function out(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+}
+
+// ── MOBILE NAV ────────────────────────────────────────────────────────────────
+function showPageMobile(id, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  // update bottom nav
+  document.querySelectorAll('.bn-item').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  // update sidebar nav too
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const fn={dashboard:updateDashboard,appointments:renderAppointments,customers:renderCustomers,
+    finance:renderFinance,commission:renderCommission,stock:renderStock,employees:renderEmployees,sync:initSyncPage};
+  if(fn[id]) fn[id]();
+}
+function showMoreMenu(){openModal('modal-more')}
+function setSyncIndicatorAll(){
+  const ok=!!gsheetUrl;
+  ['sync-dot','sync-dot-m'].forEach(id=>{
+    const d=document.getElementById(id);
+    if(d) d.className='sync-dot'+(ok?' ok':'');
+  });
+  ['sync-label','sync-label-m'].forEach(id=>{
+    const l=document.getElementById(id);
+    if(l) l.textContent=ok?'เชื่อมต่อ Sheets':'ไม่ได้เชื่อมต่อ';
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+updateDashboard();
+</script>
+</body>
+</html>
